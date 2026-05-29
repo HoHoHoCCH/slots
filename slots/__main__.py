@@ -1,5 +1,5 @@
 import argparse
-from slots.functions import Slots
+from slots.slots import Slots
 
 def main():
     slots = Slots()
@@ -18,11 +18,14 @@ def main():
 
     load_parser = subparsers.add_parser("load", help="Load a save slot.")
     load_parser.add_argument("name")
+    load_parser.add_argument("--remove-files", action="store_true", help="Remove files that were deleted in the slot.")
 
     delete_parser = subparsers.add_parser("delete", help="Delete a save slot.")
     delete_parser.add_argument("name")
 
     list_parser = subparsers.add_parser("list", help="List save slots.")
+
+    revert_parser = subparsers.add_parser("revert", help="Revert the last load.")
 
     args = parser.parse_args()
 
@@ -44,6 +47,9 @@ def main():
 
         case "delete":
             slots.delete(args)
+
+        case "revert":
+            slots.revert()
 
         case _:
             print("Command not found. Use --help for list of commands.")

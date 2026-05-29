@@ -1,3 +1,3 @@
-from slots.functions import Slots
+from slots.slots import Slots
 
 __all__ = ["Slots"]
