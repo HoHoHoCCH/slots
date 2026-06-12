@@ -1,6 +1,10 @@
-![Slots repo banner](repo_banner.png)
+![Slots repo banner](https://raw.githubusercontent.com/HoHoHoCCH/slots/main/repo_banner.png)
 
 # Slots
+
+[![PyPI version](https://img.shields.io/pypi/v/slots-cli.svg)](https://pypi.org/project/slots-cli/)
+[![Python versions](https://img.shields.io/pypi/pyversions/slots-cli.svg)](https://pypi.org/project/slots-cli/)
+[![Install](https://img.shields.io/badge/pip%20install-slots--cli-blue)](https://pypi.org/project/slots-cli/)
 
 Save slots for your local directory - Checkpoint your progress along the way with no commitment.
 
