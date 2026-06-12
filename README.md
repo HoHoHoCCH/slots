@@ -9,13 +9,13 @@ Slots is a small CLI for creating save slots inside a coding project. It is usef
 ## Installation
 
 ```powershell
-pip install slots
+pip install slots-cli
 ```
 
 For MCP support:
 
 ```powershell
-pip install "slots[mcp]"
+pip install "slots-cli[mcp]"
 ```
 
 ## Quickstart
@@ -152,7 +152,7 @@ Slots includes a MCP server so AI coding tools can create and restore save slots
 Install with MCP support:
 
 ```powershell
-pip install "slots[mcp]"
+pip install "slots-cli[mcp]"
 ```
 
 Then run the MCP server:
