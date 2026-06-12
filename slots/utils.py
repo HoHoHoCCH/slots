@@ -2,6 +2,9 @@ from pathlib import Path
 import hashlib
 import re
 import shutil
+import os
+import tempfile
+import json
 
 slots_dir_name = ".slots"
 IGNORE_LIST = [".slots", ".git", "node_modules", ".venv", "venv", "__pycache__"]
@@ -56,7 +59,7 @@ def create_layout(path):
     layout = {}
 
     for item in path.rglob("*"):
-        if should_ignore(item, path):
+        if should_ignore(item, path) or item.is_symlink():
             continue
 
         relative = item.relative_to(path)
@@ -76,6 +79,15 @@ def remove_path(path):
         shutil.rmtree(path)
     else:
         path.unlink()
+
+def remove_file_path(path):
+    if not path.exists():
+        return
+
+    if path.is_dir():
+        raise IsADirectoryError(f"Refusing to remove directory: {path}")
+
+    path.unlink()
 
 def safe_project_path(root, relative_path):
     if not isinstance(relative_path, str):
@@ -115,7 +127,13 @@ def safe_storage_path(root, relative_path):
     return destination
 
 def copy_to_destination(source, destination):
+    if source.is_symlink():
+        return
+
     destination.parent.mkdir(parents=True, exist_ok=True)
+
+    if destination.is_symlink():
+        destination.unlink()
 
     if source.is_dir():
         if destination.exists() and not destination.is_dir():
@@ -138,3 +156,23 @@ def pluralize(value, unit):
         return f"{value} {unit}"
 
     return f"{value} {unit}s"
+
+def atomic_json(path, data):
+    path = Path(path)
+    temp_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as file:
+            temp_path = Path(file.name)
+
+            json.dump(data, file, indent=4, sort_keys=True)
+            file.write("\n")
+            file.flush()
+            os.fsync(file.fileno())
+
+        os.replace(temp_path, path)
+        
+    except OSError:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
+        raise

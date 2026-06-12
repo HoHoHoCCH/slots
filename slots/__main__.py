@@ -27,6 +27,9 @@ def main():
 
     revert_parser = subparsers.add_parser("revert", help="Revert the last load.")
 
+    status_parser = subparsers.add_parser("status", help="View differences between current repository and base state.")
+    status_parser.add_argument("--latest", action="store_true", help="Compare current repository to the most recent save.")
+
     args = parser.parse_args()
 
     match args.command:
@@ -50,6 +53,9 @@ def main():
 
         case "revert":
             slots.revert()
+        
+        case "status":
+            slots.status(args)
 
         case _:
             print("Command not found. Use --help for list of commands.")

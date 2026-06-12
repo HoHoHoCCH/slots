@@ -11,5 +11,8 @@ setup(
     author="hohohocch",
     url="https://slots.hohohocch.com",
     python_requires=">=3.10",
-    install_requires=["colorama"]
+    install_requires=["colorama"],
+    extras_require={
+        "dev": ["pytest"],
+    },
 )

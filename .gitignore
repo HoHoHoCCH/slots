@@ -1,27 +1,26 @@
-# Slots local state
+
 .slots/
 
-# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Build and packaging outputs
+
 build/
 dist/
 *.egg-info/
 
-# Virtual environments
 .venv/
 venv/
 env/
 
-# Test and coverage outputs
+
 .pytest_cache/
+.pytest_tmp/
 .coverage
 htmlcov/
 
-# Editor and OS files
+
 .vscode/
 .idea/
 .DS_Store

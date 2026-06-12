@@ -11,6 +11,7 @@ from slots.utils import (
     safe_storage_path,
     should_ignore,
     slots_dir_name,
+    atomic_json
 )
 
 def create_base(root):
@@ -18,7 +19,7 @@ def create_base(root):
     base_files_dir = base_dir / "files"
 
     for item in root.iterdir():
-        if should_ignore(item, root):
+        if should_ignore(item, root) or item.is_symlink():
             continue
 
         destination = base_files_dir / item.name
@@ -42,9 +43,8 @@ def refresh_base(root):
     create_base(root)
 
     base_layout = create_layout(base_files_dir)
-    with open(base_dir / "layout.json", "w", encoding="utf-8") as file:
-        json.dump(base_layout, file, indent=4, sort_keys=True)
-        file.write("\n")
+
+    atomic_json(base_dir / "layout.json", base_layout)
 
 def save_current_directory(root, name, base_dir, saves_dir):
     current_layout = create_layout(root)
@@ -77,20 +77,16 @@ def save_current_directory(root, name, base_dir, saves_dir):
     current_save_dir.mkdir(parents=True, exist_ok=True)
     saved_files_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(current_save_dir / "info.json", "w", encoding="utf-8") as file:
-        json.dump({
+    atomic_json(current_save_dir / "info.json", {
             "name": name,
             "time": datetime.now(timezone.utc).isoformat()
-        }, file, indent=4, sort_keys=True)
-        file.write("\n")
-
-    with open(current_save_dir / "layout.json", "w", encoding="utf-8") as file:
-        json.dump({
+        })
+    
+    atomic_json(current_save_dir / "layout.json", {
             "added": sorted(added),
             "removed": sorted(removed),
             "modified": sorted(modified_files)
-        }, file, indent=4, sort_keys=True)
-        file.write("\n")
+        })
 
     # TODO: switch to diff saving instead of saving entire files
     for file_path in list(modified_files) + list(added):

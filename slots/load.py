@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from colorama import Fore
 
 from slots.save import save_current_directory
-from slots.utils import copy_to_destination, remove_path, safe_project_path, safe_storage_path
+from slots.utils import atomic_json, copy_to_destination, remove_file_path, safe_project_path, safe_storage_path
 
 def read_slot_layout(path):
     with open(path, "r", encoding="utf-8") as file:
@@ -31,9 +31,9 @@ def create_load_backup(root, base_dir, backups_dir, slot_name, touched_paths):
         return None
 
     restore_path = backups_dir / backup_name / "restore.json"
-    with open(restore_path, "w", encoding="utf-8") as file:
-        json.dump({"touched": sorted(set(touched_paths))}, file, indent=4, sort_keys=True)
-        file.write("\n")
+
+    atomic_json(restore_path, {"touched": sorted(set(touched_paths))})
+    
 
     return backup_name
 
@@ -89,7 +89,7 @@ def load_save(name, saves_dir, base_dir, backups_dir, root, removeFiles=False):
             copy_to_destination(source, destination)
 
         for path in sorted(remove_operations, key=lambda item: len(item.parts), reverse=True):
-            remove_path(path)
+            remove_file_path(path)
 
     except (OSError, shutil.Error) as error:
         print(Fore.RED + f"Load failed: {error}")
@@ -195,16 +195,17 @@ def revert_latest(root, base_dir, backups_dir):
             print(Fore.RED + f"Cannot revert: backup file missing: {source}")
             return False
 
+    for path in remove_operations:
+        if path.exists() and path.is_dir():
+            print(Fore.RED + f"Refusing to remove directory during revert: {path}")
+            return False
+
     try:
         for source, destination in copy_operations:
             copy_to_destination(source, destination)
 
         for path in sorted(remove_operations, key=lambda item: len(item.parts), reverse=True):
-            if path.exists() and path.is_dir():
-                print(Fore.YELLOW + f"Skipping directory: {path}")
-                continue
-
-            remove_path(path)
+            remove_file_path(path)
 
     except OSError as error:
         print(Fore.RED + f"Revert failed: {error}")

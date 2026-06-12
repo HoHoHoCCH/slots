@@ -14,9 +14,92 @@ from slots.utils import (
     remove_path,
     slots_dir_name,
     validate_slot_name,
+    atomic_json
 )
 
 init(autoreset=True)
+
+def list_difference(base_dir, root, saves_dir, latest):
+    current_layout = create_layout(root)
+
+    with open(base_dir / "layout.json", "r", encoding="utf-8") as file:
+        base_layout = json.load(file)
+
+    if latest:
+        latest_save = None
+        latest_time = None
+
+        for save in saves_dir.iterdir():
+            info_path = save / "info.json"
+
+            if not save.is_dir() or not info_path.exists():
+                continue
+
+            try:
+                with open(info_path, "r", encoding="utf-8") as file:
+                    info = json.load(file)
+                saved_time = datetime.fromisoformat(info["time"])
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                continue
+
+            if latest_time is None or saved_time > latest_time:
+                latest_save = save
+                latest_time = saved_time
+
+        if latest_save is None:
+            print(Fore.RED + "Cannot show latest diff: no save slots found.")
+            return
+
+        with open(latest_save / "layout.json", "r", encoding="utf-8") as file:
+            save_layout = json.load(file)
+
+        saved_files_layout = create_layout(latest_save / "files")
+        source_layout = dict(base_layout)
+
+        for file_path in save_layout["removed"]:
+            source_layout.pop(file_path, None)
+
+        for file_path in save_layout["added"] + save_layout["modified"]:
+            if file_path in saved_files_layout:
+                source_layout[file_path] = saved_files_layout[file_path]
+
+        source_name = f"latest save '{latest_save.name}'"
+    else:
+        source_name = "base state"
+        source_layout = base_layout
+
+    source_paths = set(source_layout)
+    current_paths = set(current_layout)
+    added = sorted(current_paths - source_paths)
+    removed = sorted(source_paths - current_paths)
+    modified = sorted(
+        file_path
+        for file_path in source_paths & current_paths
+        if source_layout[file_path] != current_layout[file_path]
+    )
+    total = len(added) + len(modified) + len(removed)
+
+    print(Fore.CYAN + f"Difference from {source_name}")
+    print(Fore.WHITE + f"{total} changed: {len(added)} added, {len(modified)} modified, {len(removed)} removed")
+
+    if total == 0:
+        print(Fore.GREEN + "No differences found.")
+        return
+
+    if added:
+        print(Fore.GREEN + f"\nAdded ({len(added)})")
+        for path in added:
+            print(Fore.GREEN + f"  + {path}")
+
+    if modified:
+        print(Fore.YELLOW + f"\nModified ({len(modified)})")
+        for path in modified:
+            print(Fore.YELLOW + f"  ~ {path}")
+
+    if removed:
+        print(Fore.RED + f"\nRemoved ({len(removed)})")
+        for path in removed:
+            print(Fore.RED + f"  - {path}")
 
 def clear_saves(saves_dir):
     for item in saves_dir.iterdir():
@@ -122,9 +205,7 @@ class Slots:
         create_base(self.root)
         base_layout = create_layout(self.base_dir / "files")
 
-        with open(self.base_dir / "layout.json", "w", encoding="utf-8") as file:
-            json.dump(base_layout, file, indent=4, sort_keys=True)
-            file.write("\n")
+        atomic_json(self.base_dir / "layout.json", base_layout)
 
         print(Fore.GREEN + "Initialized Slots.")
 
@@ -219,3 +300,12 @@ class Slots:
 
         if reverted:
             print(Fore.GREEN + "Reverted last load.")
+
+    
+    def status(self, args=None):
+        if not Path.exists(self.root / slots_dir_name):
+            print(Fore.RED + "Cannot show status: Slots not initialized.")
+            return
+
+        latest = getattr(args, "latest", False)
+        list_difference(self.base_dir, self.root, self.saves_dir, latest)
